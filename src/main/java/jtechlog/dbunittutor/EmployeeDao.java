@@ -1,10 +1,24 @@
 package jtechlog.dbunittutor;
 
 import java.util.List;
+import javax.persistence.EntityManager;
 
-public interface EmployeeDao {
+public class EmployeeDao {
 
-    void persistEmployee(Employee employee);
+    private EntityManager em;
 
-    List<Employee> listEmployees(int firstResult, int maxResults);
+    public EmployeeDao(EntityManager em) {
+        this.em = em;
+    }
+
+    public void persistEmployee(Employee employee) {
+        em.getTransaction().begin();
+        em.persist(employee);
+        em.getTransaction().commit();
+    }
+
+    public List<Employee> listEmployees() {
+        return em.createQuery("select distinct e from Employee e left join fetch e.phones order by e.name", Employee.class)
+                .getResultList();
+    }
 }

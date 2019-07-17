@@ -11,7 +11,7 @@ import org.dbunit.database.IDatabaseConnection;
 import org.dbunit.dataset.IDataSet;
 import org.dbunit.dataset.xml.XmlDataSet;
 import org.dbunit.operation.DatabaseOperation;
-import org.junit.*;
+import org.junit.jupiter.api.*;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -21,19 +21,20 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.sql.DataSource;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class EmployeeDaoTest {
 
-    private static DataSource dataSource;
-    private static EntityManagerFactory emf;
+    static DataSource dataSource;
 
-    private EntityManager entityManager;
+    static EntityManagerFactory emf;
 
-    private EmployeeDao employeeDao;
+    EntityManager entityManager;
 
-    @BeforeClass
-    public static void init() throws Exception {
+    EmployeeDao employeeDao;
+
+    @BeforeAll
+    static void init() throws Exception {
         Properties properties = new Properties();
         properties.put("url", "jdbc:hsqldb:mem:dbunittutor");
         properties.put("user", "sa");
@@ -43,8 +44,8 @@ public class EmployeeDaoTest {
         emf = Persistence.createEntityManagerFactory("dbunittutorPu");
     }
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void setUp() throws Exception {
         IDatabaseConnection conn = new DatabaseDataSourceConnection(dataSource);
         IDataSet data = new XmlDataSet(EmployeeDaoTest.class.getResourceAsStream("/employees.xml"));
         DatabaseOperation.CLEAN_INSERT.execute(conn, data);
@@ -52,15 +53,24 @@ public class EmployeeDaoTest {
         assertEquals(3, conn.getRowCount("employee"));
 
         entityManager = emf.createEntityManager();
-        employeeDao = new EmployeeDaoJpa();
-        ((EmployeeDaoJpa) employeeDao).setEm(entityManager);
+        employeeDao = new EmployeeDao(entityManager);
     }
 
     @Test
-    public void testPersistEmployee() throws SQLException, DatabaseUnitException {
+    void testListEmployees() {
+        // When
+        List<Employee> employees = employeeDao.listEmployees();
+
+        // Then
+        assertEquals(3, employees.size());
+        assertEquals("Jack Doe", employees.get(0).getName());
+    }
+
+    @Test
+    void testPersistEmployee() throws SQLException, DatabaseUnitException {
         // When
         Employee employee = new Employee();
-        employee.setName("name4");
+        employee.setName("Jack Smith");
         employeeDao.persistEmployee(employee);
 
         // Then
@@ -75,23 +85,13 @@ public class EmployeeDaoTest {
         new DbUnitAssert().assertEquals(tableXml, tableDb);
     }
 
-    @Test
-    public void testListEmployees() {
-        // When
-        List<Employee> employees = employeeDao.listEmployees(1, 2);
-
-        // Then
-        assertEquals(2, employees.size());
-        assertTrue("A name prefixszel kell kezdodnie", employees.get(0).getName().startsWith("name"));
-    }
-
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         entityManager.close();
     }
 
-    @AfterClass
-    public static void destroy() {
+    @AfterAll
+    static void destroy() {
         emf.close();
     }
 }
